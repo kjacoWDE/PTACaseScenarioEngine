@@ -259,7 +259,7 @@ const cases = [
         { name: "Activity modification education", correct: true, rationale: "Important due to recent aggravation." },
         { name: "Notify supervising PT", correct: true, rationale: "Required due to worsening status." }
     ],
-    debrief: "The original Plan of Care included progressive strengthening and agility drills. However, the interview revealed worsening symptoms and high irritability after jogging. Therefore, progression is not appropriate today. Treatment should focus on symptom management, gentle mobility, low-load strengthening, and communication with the supervising PT."
+    debrief: "The original Plan of Care included progressive strengthening and agility drills. However, the interview revealed worsening symptoms and high irritability after jogging. Therefore, progression should be delayed until symptoms stabilize."
 },
 
 {
@@ -334,7 +334,7 @@ const cases = [
         { name: "Maximal-effort lifting", correct: false, rationale: "Too aggressive at this stage." },
         { name: "Treating exclusively with heat", correct: false, rationale: "Does not address functional goals." }
     ],
-    debrief: "The patient demonstrates mild symptoms, low irritability, and improving stability. The original Plan of Care supports progression, and the patient's current status confirms readiness for functional strengthening, lifting, and mobility progression."
+    debrief: "The patient demonstrates mild symptoms, low irritability, and improving stability. The original Plan of Care supports progression, and the patient's current status confirms readiness for advancement."
 }
 ];
 
@@ -496,5 +496,12 @@ function showInterviewResponse(index) {
     } else {
         area.innerHTML = `<div class="interview-response">${item.a}</div>`;
         interviewResponses[index] = item.a;
-    }// Initialize the application
+    }
+}
+
+// Initialize the application when the page loads
 init();
+</script>
+
+</body>
+</html>
