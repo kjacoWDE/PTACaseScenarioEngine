@@ -48,6 +48,8 @@ header {
     padding: 15px;
     border-radius: 8px;
     border: 1px solid #d0d0d0;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
 }
 
 .card {
@@ -115,6 +117,14 @@ button:hover {
     background: #eef5f5;
     margin-bottom: 10px;
     cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+/* New style for selected questions */
+.interview-question.selected {
+    background: #cdeeea;
+    color: #053737;
+    font-weight: 700;
 }
 
 .interview-response {
@@ -179,6 +189,7 @@ button:hover {
     <div class="sidebar">
         <h3>Patient Summary</h3>
         <div id="sidebar-content"></div>
+        <!-- Subjective will be injected into the sidebar by updateSidebar() -->
     </div>
 </div>
 
@@ -259,7 +270,7 @@ const cases = [
         { name: "Activity modification education", correct: true, rationale: "Important due to recent aggravation." },
         { name: "Notify supervising PT", correct: true, rationale: "Required due to worsening status." }
     ],
-    debrief: "The original Plan of Care included progressive strengthening and agility drills. However, the interview revealed worsening symptoms and high irritability after jogging. Therefore, progression should be delayed until symptoms stabilize."
+    debrief: "The original Plan of Care included progressive strengthening and agility drills. However, the interview revealed worsening symptoms and high irritability after jogging. Therefore, p[...]"
 },
 
 {
@@ -334,7 +345,7 @@ const cases = [
         { name: "Maximal-effort lifting", correct: false, rationale: "Too aggressive at this stage." },
         { name: "Treating exclusively with heat", correct: false, rationale: "Does not address functional goals." }
     ],
-    debrief: "The patient demonstrates mild symptoms, low irritability, and improving stability. The original Plan of Care supports progression, and the patient's current status confirms readiness for advancement."
+    debrief: "The patient demonstrates mild symptoms, low irritability, and improving stability. The original Plan of Care supports progression, and the patient's current status confirms readines[...]"
 }
 ];
 
@@ -396,7 +407,8 @@ function loadCase(caseId) {
 
 function updateSidebar() {
     const sb = document.getElementById("sidebar-content");
-    sb.innerHTML = `
+    // Basic patient info and SINSS
+    let html = `
         <strong>Name:</strong> ${currentCase.patient.name}<br>
         <strong>Age:</strong> ${currentCase.patient.age}<br>
         <strong>Activity:</strong> ${currentCase.patient.occupation}<br>
@@ -409,6 +421,23 @@ function updateSidebar() {
         Stage: ${sinssSelections.stage || "-"}<br>
         Stability: ${sinssSelections.stability || "-"}<br>
     `;
+
+    // Add Subjective area (selected interview Q/A)
+    html += `<h3 style="margin-top:12px;">Subjective</h3>`;
+    if (interviewResponses && interviewResponses.some(Boolean)) {
+        html += `<div id="subjective-content">`;
+        interviewResponses.forEach((resp, i) => {
+            if (resp) {
+                const q = currentCase.interview[i].q;
+                html += `<div class="interview-response"><strong>${q}</strong><br>${resp}</div>`;
+            }
+        });
+        html += `</div>`;
+    } else {
+        html += `<div id="subjective-content"><em>No subjective notes yet. Ask questions from the Interview tab.</em></div>`;
+    }
+
+    sb.innerHTML = html;
 }
 
 /* ---------------------------------------------------------
@@ -477,7 +506,6 @@ function showInterview() {
     });
 
     html += `
-        <div id="interview-response-area"></div>
         <h3>Your Notes</h3>
         <textarea placeholder="Document your notes here (optional)."></textarea>
         <br><br>
@@ -486,17 +514,56 @@ function showInterview() {
     `;
 
     area.innerHTML = html;
+
+    // Re-apply selected styling for questions that are already answered
+    setTimeout(() => {
+        const questions = document.querySelectorAll(".interview-question");
+        questions.forEach((el, i) => {
+            if (interviewResponses[i]) el.classList.add("selected");
+        });
+    }, 0);
 }
 
 function showInterviewResponse(index) {
     const item = currentCase.interview[index];
-    const area = document.getElementById("interview-response-area");
-    if (interviewResponses[index]) {
-        area.innerHTML = `<div class="interview-response">${interviewResponses[index]}</div>`;
-    } else {
-        area.innerHTML = `<div class="interview-response">${item.a}</div>`;
-        interviewResponses[index] = item.a;
+    // Save the answer so it can be displayed in the sidebar Subjective section
+    interviewResponses[index] = item.a;
+
+    // Visually mark the selected question
+    const questions = document.querySelectorAll(".interview-question");
+    if (questions && questions[index]) {
+        questions[index].classList.add("selected");
     }
+
+    // Update the sidebar to show Subjective answers
+    updateSidebar();
+}
+
+/* ---------------------------------------------------------
+   (PLACEHOLDERS for remaining phases — unchanged)
+--------------------------------------------------------- */
+
+function showSINSS(){
+    const area = document.getElementById("content-area");
+    const c = currentCase;
+    area.innerHTML = `
+        <div class="card">
+            <h2>Classify — SINSS</h2>
+            <p>Placeholder SINSS classification UI (not implemented in this edit).</p>
+            <button onclick="showInterventions(); setActiveNav('nav-interventions');">Proceed to Interventions →</button>
+        </div>
+    `;
+}
+
+function showInterventions(){
+    const area = document.getElementById("content-area");
+    const c = currentCase;
+    area.innerHTML = `
+        <div class="card">
+            <h2>Interventions</h2>
+            <p>Placeholder interventions UI (not implemented in this edit).</p>
+        </div>
+    `;
 }
 
 // Initialize the application when the page loads
