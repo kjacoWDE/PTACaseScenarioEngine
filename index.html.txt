@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PTA SINSS Clinical Reasoning Engine</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+/* ------------------------------
+   GLOBAL STYLES
+--------------------------------*/
+body {
+    margin: 0;
+    padding: 0;
+    background: #f7f7f4;
+    font-family: "Segoe UI", sans-serif;
+    color: #0a3d3f;
+}
+
+header {
+    background: #0a3d3f;
+    color: white;
+    padding: 15px 20px;
+    font-size: 1.4rem;
+    font-family: Georgia, serif;
+}
+
+.container {
+    display: flex;
+    flex-direction: row;
+    padding: 20px;
+    gap: 20px;
+}
+
+@media (max-width: 900px) {
+    .container {
+        flex-direction: column;
+    }
+}
+
+.main {
+    flex: 3;
+}
+
+.sidebar {
+    flex: 1;
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #d0d0d0;
+}
+
+.card {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #d0d0d0;
+    margin-bottom: 20px;
+}
+
+h2 {
+    font-family: Georgia, serif;
+    margin-top: 0;
+}
+
+h3 {
+    font-family: Georgia, serif;
+}
+
+label {
+    font-weight: bold;
+}
+
+select, button, textarea {
+    width: 100%;
+    padding: 10px;
+    margin-top: 8px;
+    border-radius: 6px;
+    border: 1px solid #b0b0b0;
+    font-size: 1rem;
+}
+
+button {
+    background: #0a3d3f;
+    color: white;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #0c5052;
+}
+
+.navbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.nav-item {
+    padding: 10px 15px;
+    background: #e0e0dd;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.nav-item.active {
+    background: #0a3d3f;
+    color: white;
+}
+
+.interview-question {
+    padding: 10px;
+    border-radius: 6px;
+    background: #eef5f5;
+    margin-bottom: 10px;
+    cursor: pointer;
+}
+
+.interview-response {
+    background: #ffffff;
+    border-left: 4px solid #0a3d3f;
+    padding: 10px;
+    margin-bottom: 15px;
+}
+
+.sinss-select {
+    margin-bottom: 15px;
+}
+
+.intervention-item {
+    padding: 10px;
+    background: #eef5f5;
+    border-radius: 6px;
+    margin-bottom: 10px;
+}
+
+.result-correct {
+    color: green;
+    font-weight: bold;
+}
+
+.result-incorrect {
+    color: red;
+    font-weight: bold;
+}
+
+.debrief-box {
+    background: #ffffff;
+    border-left: 4px solid #0a3d3f;
+    padding: 15px;
+    margin-top: 20px;
+    border-radius: 6px;
+}
+</style>
+
+</head>
+<body>
+
+<header>PTA SINSS Clinical Reasoning Simulation</header>
+
+<div style="padding: 20px;">
+    <label>Select Case:</label>
+    <select id="caseSelect"></select>
+</div>
+
+<div class="container">
+    <div class="main">
+        <div class="navbar">
+            <div class="nav-item active" id="nav-plan">PLAN OF CARE</div>
+            <div class="nav-item" id="nav-interview">INTERVIEW</div>
+            <div class="nav-item" id="nav-sinss">CLASSIFY — SINSS</div>
+            <div class="nav-item" id="nav-interventions">INTERVENTIONS</div>
+        </div>
+
+        <div id="content-area"></div>
+    </div>
+
+    <div class="sidebar">
+        <h3>Patient Summary</h3>
+        <div id="sidebar-content"></div>
+    </div>
+</div>
+
+<script>
+/* ---------------------------------------------------------
+   CASE DATA
+--------------------------------------------------------- */
+
+const cases = [
+{
+    id: "case1",
+    patient: {
+        name: "Tara Molina",
+        age: 24,
+        occupation: "Recreational basketball player",
+        diagnosis: "Acute lateral ankle sprain",
+        timeSince: "6 days",
+        mechanism: "Inversion injury during a Sunday league basketball game."
+    },
+    planOfCare: {
+        impairments: [
+            "Pain",
+            "Swelling",
+            "Limited weight-bearing tolerance",
+            "Reduced ankle ROM",
+            "Reduced dynamic balance"
+        ],
+        goals: [
+            "Walk without pain",
+            "Return to recreational basketball",
+            "Restore strength and balance"
+        ],
+        originalPlan: [
+            "Cryotherapy/compression/elevation as needed",
+            "Pain-free ROM",
+            "Progressive resisted strengthening",
+            "Balance training",
+            "Progress to hopping, cutting, and agility drills"
+        ]
+    },
+    interview: [
+        { q: "How would you rate your pain right now?", a: "About 4/10 at rest." },
+        { q: "What is your pain at its worst?", a: "Around 6/10 when I put weight on it." },
+        { q: "What activities aggravate your symptoms?", a: "Walking more than a few minutes increases pain to 6/10 and it stays aggravated for hours." },
+        { q: "How long do symptoms take to settle?", a: "Several hours after aggravation." },
+        { q: "Describe your symptoms.", a: "Localized aching around the outside of my ankle." },
+        { q: "Any numbness or tingling?", a: "No." },
+        { q: "Do symptoms travel?", a: "No, just around the ankle." },
+        { q: "When did this begin?", a: "Six days ago." },
+        { q: "How did the injury occur?", a: "I rolled my ankle playing basketball." },
+        { q: "Compared with last visit?", a: "Worse — I tried jogging and it swelled up more." }
+    ],
+    sinss: {
+        correct: {
+            severity: "Moderate",
+            irritability: "High",
+            nature: "Nociceptive",
+            stage: "Acute",
+            stability: "Worsening"
+        },
+        explanations: {
+            severity: "Pain 4/10 at rest and 6/10 with weight bearing indicates moderate severity.",
+            irritability: "Symptoms are easily aggravated and remain elevated for hours — high irritability.",
+            nature: "Localized aching without numbness/tingling indicates nociceptive pain.",
+            stage: "Symptoms began 6 days ago — acute stage.",
+            stability: "Symptoms worsened after jogging — worsening stability."
+        }
+    },
+    interventions: [
+        { name: "Cryotherapy", correct: true, rationale: "Appropriate for symptom management in acute worsening status." },
+        { name: "Compression/elevation education", correct: true, rationale: "Helps manage swelling and pain." },
+        { name: "Pain-free ROM", correct: true, rationale: "Safe mobility without aggravation." },
+        { name: "Low-load isometrics", correct: true, rationale: "Appropriate early strengthening without high load." },
+        { name: "High-load resisted strengthening", correct: false, rationale: "Too aggressive for high irritability and worsening symptoms." },
+        { name: "Advanced unstable-surface balance", correct: false, rationale: "Not appropriate until symptoms stabilize." },
+        { name: "Plyometrics", correct: false, rationale: "Contraindicated due to worsening status." },
+        { name: "Hopping/cutting/agility drills", correct: false, rationale: "Not appropriate until irritability decreases." },
+        { name: "Activity modification education", correct: true, rationale: "Important due to recent aggravation." },
+        { name: "Notify supervising PT", correct: true, rationale: "Required due to worsening status." }
+    ],
+    debrief: "The original Plan of Care included progressive strengthening and agility drills. However, the interview revealed worsening symptoms and high irritability after jogging. Therefore, progression is not appropriate today. Treatment should focus on symptom management, gentle mobility, low-load strengthening, and communication with the supervising PT."
+},
+
+{
+    id: "case2",
+    patient: {
+        name: "James Carter",
+        age: 59,
+        occupation: "Warehouse worker",
+        diagnosis: "Subacute mechanical low back pain",
+        timeSince: "3 weeks",
+        mechanism: "Gradual onset related to lifting at work."
+    },
+    planOfCare: {
+        impairments: [
+            "Limited lumbar flexion",
+            "Pain with extension",
+            "Reduced trunk endurance",
+            "Difficulty lifting",
+            "Difficulty with prolonged sitting"
+        ],
+        goals: [
+            "Improve lumbar mobility",
+            "Improve trunk endurance",
+            "Return to lifting 40-lb boxes"
+        ],
+        originalPlan: [
+            "Heat as needed",
+            "Lumbar mobility exercises",
+            "Core stabilization",
+            "Progressive resisted lifting",
+            "Body mechanics education"
+        ]
+    },
+    interview: [
+        { q: "Current pain level?", a: "About 2/10." },
+        { q: "Worst pain?", a: "Around 4/10." },
+        { q: "How long do symptoms take to settle?", a: "About 10 minutes." },
+        { q: "Recent flare?", a: "No significant flare recently." },
+        { q: "What improves symptoms?", a: "Walking helps." },
+        { q: "Any numbness or tingling?", a: "No." },
+        { q: "Any leg pain?", a: "No." },
+        { q: "How are symptoms changing?", a: "Improving." },
+        { q: "Sitting tolerance?", a: "Getting better." },
+        { q: "Movement tolerance?", a: "Improving." },
+        { q: "When did this begin?", a: "About 3 weeks ago." }
+    ],
+    sinss: {
+        correct: {
+            severity: "Mild",
+            irritability: "Low",
+            nature: "Nociceptive",
+            stage: "Subacute",
+            stability: "Improving"
+        },
+        explanations: {
+            severity: "Pain 2/10 currently and 4/10 worst indicates mild severity.",
+            irritability: "Symptoms settle within 10 minutes — low irritability.",
+            nature: "Mechanical low back pain without numbness/tingling is nociceptive.",
+            stage: "Symptoms began 3 weeks ago — subacute stage.",
+            stability: "Symptoms improving — stability improving."
+        }
+    },
+    interventions: [
+        { name: "Progressing core stabilization", correct: true, rationale: "Appropriate due to improving status and low irritability." },
+        { name: "Progressive therapeutic exercise", correct: true, rationale: "Supports functional goals." },
+        { name: "Graded functional lifting", correct: true, rationale: "Matches occupational goals." },
+        { name: "Body mechanics training", correct: true, rationale: "Important for warehouse work." },
+        { name: "Progressive walking", correct: true, rationale: "Walking improves symptoms." },
+        { name: "Manual resistance", correct: true, rationale: "Appropriate for subacute improving status." },
+        { name: "Avoiding all strengthening", correct: false, rationale: "Inappropriate — patient should progress." },
+        { name: "Waiting until pain-free before exercising", correct: false, rationale: "Not necessary — mild symptoms allow progression." },
+        { name: "Maximal-effort lifting", correct: false, rationale: "Too aggressive at this stage." },
+        { name: "Treating exclusively with heat", correct: false, rationale: "Does not address functional goals." }
+    ],
+    debrief: "The patient demonstrates mild symptoms, low irritability, and improving stability. The original Plan of Care supports progression, and the patient's current status confirms readiness for functional strengthening, lifting, and mobility progression."
+}
+];
+
+/* ---------------------------------------------------------
+   APPLICATION STATE
+--------------------------------------------------------- */
+
+let currentCase = null;
+let interviewResponses = [];
+let sinssSelections = {
+    severity: null,
+    irritability: null,
+    nature: null,
+    stage: null,
+    stability: null
+};
+let interventionSelections = {};
+
+/* ---------------------------------------------------------
+   INITIALIZATION
+--------------------------------------------------------- */
+
+function init() {
+    const select = document.getElementById("caseSelect");
+    select.innerHTML = ""; // Clear existing options
+
+    cases.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c.id;
+        opt.textContent = `${c.patient.name} — ${c.patient.diagnosis}`;
+        select.appendChild(opt);
+    });
+
+    select.addEventListener("change", () => loadCase(select.value));
+
+    loadCase(cases[0].id);
+}
+
+function loadCase(caseId) {
+    currentCase = cases.find(c => c.id === caseId);
+    interviewResponses = [];
+    sinssSelections = {
+        severity: null,
+        irritability: null,
+        nature: null,
+        stage: null,
+        stability: null
+    };
+    interventionSelections = {};
+
+    updateSidebar();
+    showPlanOfCare();
+    setActiveNav("nav-plan");
+}
+
+/* ---------------------------------------------------------
+   SIDEBAR
+--------------------------------------------------------- */
+
+function updateSidebar() {
+    const sb = document.getElementById("sidebar-content");
+    sb.innerHTML = `
+        <strong>Name:</strong> ${currentCase.patient.name}<br>
+        <strong>Age:</strong> ${currentCase.patient.age}<br>
+        <strong>Activity:</strong> ${currentCase.patient.occupation}<br>
+        <strong>Diagnosis:</strong> ${currentCase.patient.diagnosis}<br>
+        <strong>Time Since Onset:</strong> ${currentCase.patient.timeSince}<br>
+        <strong>Current SINSS:</strong><br>
+        Severity: ${sinssSelections.severity || "-"}<br>
+        Irritability: ${sinssSelections.irritability || "-"}<br>
+        Nature: ${sinssSelections.nature || "-"}<br>
+        Stage: ${sinssSelections.stage || "-"}<br>
+        Stability: ${sinssSelections.stability || "-"}<br>
+    `;
+}
+
+/* ---------------------------------------------------------
+   NAVIGATION
+--------------------------------------------------------- */
+
+document.getElementById("nav-plan").onclick = () => { showPlanOfCare(); setActiveNav("nav-plan"); };
+document.getElementById("nav-interview").onclick = () => { showInterview(); setActiveNav("nav-interview"); };
+document.getElementById("nav-sinss").onclick = () => { showSINSS(); setActiveNav("nav-sinss"); };
+document.getElementById("nav-interventions").onclick = () => { showInterventions(); setActiveNav("nav-interventions"); };
+
+function setActiveNav(id) {
+    document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+}
+
+/* ---------------------------------------------------------
+   PHASE 1 — PLAN OF CARE
+--------------------------------------------------------- */
+
+function showPlanOfCare() {
+    const c = currentCase;
+    const area = document.getElementById("content-area");
+
+    area.innerHTML = `
+        <div class="card">
+            <h2>Plan of Care</h2>
+            <p><strong>Patient:</strong> ${c.patient.name}, ${c.patient.age}</p>
+            <p><strong>Diagnosis:</strong> ${c.patient.diagnosis}</p>
+            <p><strong>Mechanism:</strong> ${c.patient.mechanism}</p>
+
+            <h3>Impairments</h3>
+            <ul>${c.planOfCare.impairments.map(i => `<li>${i}</li>`).join("")}</ul>
+
+            <h3>Goals</h3>
+            <ul>${c.planOfCare.goals.map(i => `<li>${i}</li>`).join("")}</ul>
+
+            <h3>Original Plan of Care</h3>
+            <ul>${c.planOfCare.originalPlan.map(i => `<li>${i}</li>`).join("")}</ul>
+
+            <button onclick="showInterview(); setActiveNav('nav-interview');">Interview the Patient →</button>
+        </div>
+    `;
+}
+
+/* ---------------------------------------------------------
+   PHASE 2 — INTERVIEW
+--------------------------------------------------------- */
+
+function showInterview() {
+    const area = document.getElementById("content-area");
+    const c = currentCase;
+
+    let html = `
+        <div class="card">
+            <h2>Patient Interview</h2>
+            <p>Select questions to ask the patient.</p>
+    `;
+
+    c.interview.forEach((item, index) => {
+        html += `
+            <div class="interview-question" onclick="showInterviewResponse(${index})">
+                ${item.q}
+            </div>
+        `;
+    });
+
+    html += `
+        <div id="interview-response-area"></div>
+        <h3>Your Notes</h3>
+        <textarea placeholder="Document your notes here (optional)."></textarea>
+        <br><br>
+        <button onclick="showSINSS(); setActiveNav('nav-sinss');">Proceed to SINSS Classification →</button>
+        </div>
+    `;
+
+    area.innerHTML = html;
+}
+
+function showInterviewResponse(index) {
+    const item = currentCase.interview[index];
+    const area = document.getElementById("interview-response-area");
+
+    area.innerHTML = `
+        <div class="interview-response">
+            <strong>Patient Response:</strong><br>
+            ${item.a}
+        </div>
+    `;
+}
+
+/* ---------------------------------------------------------
+   PHASE 3 — SINSS
+--------------------------------------------------------- */
+
+function showSINSS() {
+    const area = document.getElementById("content-area");
+
+    area.innerHTML = `
+        <div class="card">
+            <h2>SINSS Classification</h2>
+
+            <div class="sinss-select">
+                <label>Severity</label>
+                <select onchange="sinssSelections.severity = this.value; updateSidebar();">
+                    <option value="">Select</option>
+                    <option>Mild</option>
+                    <option>Moderate</option>
+                    <option>Severe</option>
+                </select>
+            </div>
+
+            <div class="sinss-select">
+                <label>Irritability</label>
+                <select onchange="sinssSelections.irritability = this.value; updateSidebar();">
+                    <option value="">Select</option>
+                    <option>Low</option>
+                    <option>Moderate</option>
+                    <option>High</option>
+                </select>
+            </div>
+
+            <div class="sinss-select">
+                <label>Nature</label>
+                <select onchange="sinssSelections.nature = this.value; updateSidebar();">
+                    <option value="">Select</option>
+                    <option>Nociceptive</option>
+                    <option>Neuropathic</option>
+                    <option>Nociplastic</option>
+                </select>
+            </div>
+
+            <div class="sinss-select">
+                <label>Stage</label>
+                <select onchange="sinssSelections.stage = this.value; updateSidebar();">
+                    <option value="">Select</option>
+                    <option>Acute</option>
+                    <option>Subacute</option>
+                    <option>Chronic</option>
+                </select>
+            </div>
+
+            <div class="sinss-select">
+                <label>Stability</label>
+                <select onchange="sinssSelections.stability = this.value; updateSidebar();">
+                    <option value="">Select</option>
+                    <option>Improving</option>
+                    <option>Stable / Unchanged</option>
+                    <option>Worsening</option>
+                </select>
+            </div>
+
+            <button onclick="submitSINSS()">Submit SINSS Classification</button>
+        </div>
+    `;
+}
+
+function submitSINSS() {
+    const c = currentCase.sinss.correct;
+    const area = document.getElementById("content-area");
+
+    let score = 0;
+
+    function check(field) {
+        return sinssSelections[field] === c[field];
+    }
+
+    score += check("severity") ? 1 : 0;
+    score += check("irritability") ? 1 : 0;
+    score += check("nature") ? 1 : 0;
+    score += check("stage") ? 1 : 0;
+    score += check("stability") ? 1 : 0;
+
+    let html = `
+        <div class="card">
+            <h2>SINSS Feedback</h2>
+            <p><strong>Your Score:</strong> ${score}/5</p>
+            <ul>
+                <li><strong>Severity:</strong> You: ${sinssSelections.severity || "-"} | Correct: ${c.severity}<br>${currentCase.sinss.explanations.severity}</li>
+                <li><strong>Irritability:</strong> You: ${sinssSelections.irritability || "-"} | Correct: ${c.irritability}<br>${currentCase.sinss.explanations.irritability}</li>
+                <li><strong>Nature:</strong> You: ${sinssSelections.nature || "-"} | Correct: ${c.nature}<br>${currentCase.sinss.explanations.nature}</li>
+                <li><strong>Stage:</strong> You: ${sinssSelections.stage || "-"} | Correct: ${c.stage}<br>${currentCase.sinss.explanations.stage}</li>
+                <li><strong>Stability:</strong> You: ${sinssSelections.stability || "-"} | Correct: ${c.stability}<br>${currentCase.sinss.explanations.stability}</li>
+            </ul>
+
+            <button onclick="showInterventions(); setActiveNav('nav-interventions');">Proceed to Interventions →</button>
+        </div>
+    `;
+
+    area.innerHTML = html;
+}
+
+/* ---------------------------------------------------------
+   PHASE 4 — INTERVENTIONS
+--------------------------------------------------------- */
+
+function showInterventions() {
+    const area = document.getElementById("content-area");
+    const list = currentCase.interventions;
+
+    let html = `
+        <div class="card">
+            <h2>Intervention Selection</h2>
+            <p>Select the interventions appropriate for today's presentation.</p>
+    `;
+
+    list.forEach((item, index) => {
+        html += `
+            <div class="intervention-item">
+                <input type="checkbox" onchange="interventionSelections[${index}] = this.checked;">
+                ${item.name}
+            </div>
+        `;    });
+
+    html += `
+        <button onclick="submitInterventions()">Submit Interventions</button>
+        </div>
+    `;
+
+    area.innerHTML = html;
+}
+
+function submitInterventions() {
+    const list = currentCase.interventions;
+    const area = document.getElementById("content-area");
+
+    let score = 0;
+    let total = list.length;
+
+    let html = `
+        <div class="card">
+            <h2>Intervention Feedback</h2>
+            <ul>
+    `;
+
+    list.forEach((item, index) => {
+        const selected = interventionSelections[index] || false;
+        const correct = item.correct;
+
+        if (selected === correct) score++;
+
+        html += `
+            <li>
+                <strong>${item.name}</strong><br>
+                You selected: ${selected ? "Yes" : "No"}<br>
+                Correct: ${correct ? "Yes" : "No"}<br>
+                <span class="${selected === correct ? "result-correct" : "result-incorrect"}">
+                    ${selected === correct ? "Correct decision" : "Incorrect decision"}
+                </span><br>
+                Rationale: ${item.rationale}
+            </li>
+        `;
+    });
+
+    html += `
+            </ul>
+            <p><strong>Your Intervention Score:</strong> ${score}/${total}</p>
+            <h3>Clinical Reasoning Debrief</h3>
+            <div class="debrief-box">${currentCase.debrief}</div>
+        </div>
+    `;
+
+    area.innerHTML = html;
+}
+
+/* ---------------------------------------------------------
+   START APPLICATION
+--------------------------------------------------------- */
+
+window.onload = init;
+
+</script>
+
+</body>
+</html>
+
+<!-- END OF FILE — CHECKSUM: PTA-SINSS-ENGINE-V1 -->
+
