@@ -162,6 +162,15 @@ button:hover {
     margin-top: 20px;
     border-radius: 6px;
 }
+
+.sinss-feedback-item {
+    padding: 10px;
+    border-radius: 6px;
+    background: #fafafa;
+    margin-bottom: 8px;
+    border: 1px solid #e6e6e6;
+}
+
 </style>
 
 </head>
@@ -540,20 +549,100 @@ function showInterviewResponse(index) {
 }
 
 /* ---------------------------------------------------------
-   (PLACEHOLDERS for remaining phases — unchanged)
+   PHASE 3 — SINSS CLASSIFICATION (implemented)
 --------------------------------------------------------- */
 
-function showSINSS(){
+function showSINSS() {
     const area = document.getElementById("content-area");
     const c = currentCase;
+
+    // Options for each SINSS domain
+    const severityOptions = ["-", "Minimal", "Mild", "Moderate", "Severe"];
+    const irritabilityOptions = ["-", "Low", "Moderate", "High"];
+    const natureOptions = ["-", "Nociceptive", "Neuropathic", "Mixed"];
+    const stageOptions = ["-", "Acute", "Subacute", "Chronic"];
+    const stabilityOptions = ["-", "Improving", "Unchanged", "Worsening"];
+
+    function makeSelect(id, options, selected) {
+        return `<label for="${id}">${id.replace('sinss-','').charAt(0).toUpperCase()+id.replace('sinss-','').slice(1)}:</label>` +
+               `<select id="${id}">${options.map(o => `<option value="${o}" ${o===selected? 'selected':''}>${o}</option>`).join('')}</select>`;
+    }
+
     area.innerHTML = `
         <div class="card">
             <h2>Classify — SINSS</h2>
-            <p>Placeholder SINSS classification UI (not implemented in this edit).</p>
+            <p>Select the best classification for each SINSS domain based on your interview and findings.</p>
+
+            <div class="sinss-select">${makeSelect('sinss-severity', severityOptions, sinssSelections.severity || '-')}</div>
+            <div class="sinss-select">${makeSelect('sinss-irritability', irritabilityOptions, sinssSelections.irritability || '-')}</div>
+            <div class="sinss-select">${makeSelect('sinss-nature', natureOptions, sinssSelections.nature || '-')}</div>
+            <div class="sinss-select">${makeSelect('sinss-stage', stageOptions, sinssSelections.stage || '-')}</div>
+            <div class="sinss-select">${makeSelect('sinss-stability', stabilityOptions, sinssSelections.stability || '-')}</div>
+
+            <button id="save-sinss">Save SINSS & Check</button>
+            <button id="clear-sinss" style="margin-top:8px;background:#7a7a7a">Clear SINSS</button>
+
+            <div id="sinss-feedback" style="margin-top:12px"></div>
+
+            <br>
             <button onclick="showInterventions(); setActiveNav('nav-interventions');">Proceed to Interventions →</button>
         </div>
     `;
+
+    document.getElementById('save-sinss').onclick = () => {
+        // Read values
+        const sev = document.getElementById('sinss-severity').value;
+        const irr = document.getElementById('sinss-irritability').value;
+        const nat = document.getElementById('sinss-nature').value;
+        const stg = document.getElementById('sinss-stage').value;
+        const stb = document.getElementById('sinss-stability').value;
+
+        sinssSelections.severity = sev === '-' ? null : sev;
+        sinssSelections.irritability = irr === '-' ? null : irr;
+        sinssSelections.nature = nat === '-' ? null : nat;
+        sinssSelections.stage = stg === '-' ? null : stg;
+        sinssSelections.stability = stb === '-' ? null : stb;
+
+        updateSidebar();
+        renderSINSSFeedback();
+    };
+
+    document.getElementById('clear-sinss').onclick = () => {
+        sinssSelections = {severity:null,irritability:null,nature:null,stage:null,stability:null};
+        updateSidebar();
+        // Reset selects in UI
+        ['sinss-severity','sinss-irritability','sinss-nature','sinss-stage','sinss-stability'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '-';
+        });
+        document.getElementById('sinss-feedback').innerHTML = '';
+    };
+
+    function renderSINSSFeedback() {
+        const fb = document.getElementById('sinss-feedback');
+        const correct = c.sinss && c.sinss.correct ? c.sinss.correct : {};
+        const explanations = c.sinss && c.sinss.explanations ? c.sinss.explanations : {};
+
+        const domains = ['severity','irritability','nature','stage','stability'];
+        let html = '';
+        domains.forEach(d => {
+            const userVal = sinssSelections[d] || '-';
+            const correctVal = correct[d] || '-';
+            const isCorrect = userVal !== '-' && correctVal !== '-' && userVal === correctVal;
+            html += `<div class="sinss-feedback-item">` +
+                    `<strong>${d.charAt(0).toUpperCase()+d.slice(1)}:</strong> Your selection: <em>${userVal}</em><br>` +
+                    (userVal === '-' ? `<span style="color:#7a7a7a">No selection</span>` : isCorrect ? `<span class="result-correct">Correct</span>` : `<span class="result-incorrect">Incorrect (Expected: ${correctVal})</span>`) +
+                    (explanations[d] ? `<div style="margin-top:6px;color:#444">${explanations[d]}</div>` : '') +
+                    `</div>`;
+        });
+
+        fb.innerHTML = html;
+    }
 }
+
+/* ---------------------------------------------------------
+   (PLACEHOLDERS for remaining phases — unchanged)
+--------------------------------------------------------- */
 
 function showInterventions(){
     const area = document.getElementById("content-area");
