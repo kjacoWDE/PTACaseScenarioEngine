@@ -171,6 +171,11 @@ button:hover {
     border: 1px solid #e6e6e6;
 }
 
+.intervention-selected {
+    background: #dff3e9;
+    border: 1px solid #c2e3c8;
+}
+
 </style>
 
 </head>
@@ -237,6 +242,12 @@ const cases = [
             "Progressive resisted strengthening",
             "Balance training",
             "Progress to hopping, cutting, and agility drills"
+        ],
+        objective: [
+            "AROM/PROM: decreased ankle dorsiflexion (10° vs. expected ~20°) and decreased eversion compared with contralateral side",
+            "Strength: 4/5 ankle plantarflexion and dorsiflexion on affected side due to pain",
+            "MLT: gastrocnemius-soleus length within normal limits",
+            "Special Tests: anterior drawer test positive (increased laxity) and swelling present over lateral ligaments"
         ]
     },
     interview: [
@@ -311,6 +322,12 @@ const cases = [
             "Core stabilization",
             "Progressive resisted lifting",
             "Body mechanics education"
+        ],
+        objective: [
+            "AROM: lumbar flexion limited (finger-to-floor 18 cm) with pain at end range",
+            "Strength: trunk extensor endurance decreased (Sorensen test 38 seconds) compared with norms",
+            "MLT: hamstring length mild restriction on left side",
+            "Special Tests: neural tension tests negative; no neurological deficit" 
         ]
     },
     interview: [
@@ -484,6 +501,9 @@ function showPlanOfCare() {
             <h3>Goals</h3>
             <ul>${c.planOfCare.goals.map(i => `<li>${i}</li>`).join("")}</ul>
 
+            <h3>Objective Findings</h3>
+            <ul>${(c.planOfCare.objective || []).map(i => `<li>${i}</li>`).join("")}</ul>
+
             <h3>Original Plan of Care</h3>
             <ul>${c.planOfCare.originalPlan.map(i => `<li>${i}</li>`).join("")}</ul>
 
@@ -549,17 +569,17 @@ function showInterviewResponse(index) {
 }
 
 /* ---------------------------------------------------------
-   PHASE 3 — SINSS CLASSIFICATION (implemented)
+   PHASE 3 — SINSS CLASSIFICATION (implemented, options corrected)
 --------------------------------------------------------- */
 
 function showSINSS() {
     const area = document.getElementById("content-area");
     const c = currentCase;
 
-    // Options for each SINSS domain
-    const severityOptions = ["-", "Minimal", "Mild", "Moderate", "Severe"];
+    // Options for each SINSS domain (updated severity and nature)
+    const severityOptions = ["-", "Low", "Moderate", "High"];
     const irritabilityOptions = ["-", "Low", "Moderate", "High"];
-    const natureOptions = ["-", "Nociceptive", "Neuropathic", "Mixed"];
+    const natureOptions = ["-", "Nociceptive", "Neuropathic", "Nociplastic"];
     const stageOptions = ["-", "Acute", "Subacute", "Chronic"];
     const stabilityOptions = ["-", "Improving", "Unchanged", "Worsening"];
 
@@ -628,7 +648,7 @@ function showSINSS() {
         domains.forEach(d => {
             const userVal = sinssSelections[d] || '-';
             const correctVal = correct[d] || '-';
-            const isCorrect = userVal !== '-' && correctVal !== '-' && userVal === correctVal;
+            const isCorrect = userVal !== '-' && correctVal !== '-' && userVal.toLowerCase() === correctVal.toLowerCase();
             html += `<div class="sinss-feedback-item">` +
                     `<strong>${d.charAt(0).toUpperCase()+d.slice(1)}:</strong> Your selection: <em>${userVal}</em><br>` +
                     (userVal === '-' ? `<span style="color:#7a7a7a">No selection</span>` : isCorrect ? `<span class="result-correct">Correct</span>` : `<span class="result-incorrect">Incorrect (Expected: ${correctVal})</span>`) +
@@ -641,18 +661,71 @@ function showSINSS() {
 }
 
 /* ---------------------------------------------------------
-   (PLACEHOLDERS for remaining phases — unchanged)
+   PHASE 4 — INTERVENTIONS (implemented)
 --------------------------------------------------------- */
 
 function showInterventions(){
     const area = document.getElementById("content-area");
     const c = currentCase;
-    area.innerHTML = `
+
+    let html = `
         <div class="card">
             <h2>Interventions</h2>
-            <p>Placeholder interventions UI (not implemented in this edit).</p>
+            <p>Select interventions you would include. Click "Check Selections" to review rationale and correctness for this case.</p>
+            <div id="intervention-list">
+                ${c.interventions.map((iv, idx) => `
+                    <div class="intervention-item" data-idx="${idx}" id="interv-${idx}">
+                        <label><input type="checkbox" id="interv-checkbox-${idx}"> ${iv.name}</label>
+                    </div>
+                `).join('')}
+            </div>
+
+            <button id="check-interventions" style="margin-top:10px">Check Selections</button>
+            <button id="clear-interventions" style="margin-top:8px;background:#7a7a7a">Clear Selections</button>
+
+            <div id="intervention-feedback" style="margin-top:12px"></div>
         </div>
     `;
+
+    area.innerHTML = html;
+
+    // Wire up buttons
+    document.getElementById('check-interventions').onclick = () => {
+        const feedbackEl = document.getElementById('intervention-feedback');
+        let htmlFb = '';
+        c.interventions.forEach((iv, idx) => {
+            const cb = document.getElementById(`interv-checkbox-${idx}`);
+            const selected = cb && cb.checked;
+            const correctness = iv.correct;
+            htmlFb += `<div class="sinss-feedback-item ${selected? 'intervention-selected':''}">` +
+                      `<strong>${iv.name}</strong><br>` +
+                      `Selected: ${selected ? 'Yes' : 'No'} — ` +
+                      (correctness ? `<span class="result-correct">Recommended</span>` : `<span class="result-incorrect">Not recommended</span>`) +
+                      `<div style="margin-top:6px;color:#444">${iv.rationale}</div>` +
+                      `</div>`;
+        });
+        feedbackEl.innerHTML = htmlFb;
+    };
+
+    document.getElementById('clear-interventions').onclick = () => {
+        c.interventions.forEach((iv, idx) => {
+            const cb = document.getElementById(`interv-checkbox-${idx}`);
+            if (cb) cb.checked = false;
+            const el = document.getElementById(`interv-${idx}`);
+            if (el) el.classList.remove('intervention-selected');
+        });
+        document.getElementById('intervention-feedback').innerHTML = '';
+    };
+
+    // Update visual state when checkboxes change
+    c.interventions.forEach((iv, idx) => {
+        const cb = document.getElementById(`interv-checkbox-${idx}`);
+        const container = document.getElementById(`interv-${idx}`);
+        if (cb) cb.addEventListener('change', () => {
+            if (cb.checked) container.classList.add('intervention-selected');
+            else container.classList.remove('intervention-selected');
+        });
+    });
 }
 
 // Initialize the application when the page loads
